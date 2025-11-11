@@ -17,7 +17,7 @@ pros::MotorGroup leftMotors({8, -9, 10}, pros::MotorGearset::blue); // left moto
 pros::MotorGroup rightMotors({-4, 5, -6}, pros::MotorGearset::blue); // right motor group - ports 4, 5, 6 ( not reversed)
 
 // motors
-pros::Motor motor11 (11, pros::v5::MotorGears::green); // roller; not reversed
+pros::Motor motor11 (11, pros::v5::MotorGears::blue); // roller; not reversed
 pros::Motor motor13 (-13, pros::v5::MotorGears::green); // roller; reversed
 pros::Motor motor12 (12, pros::v5::MotorGears::green); // roller; not reversed
 pros::Motor motor14 (-14, pros::v5::MotorGears::green); // roller; reversed
@@ -210,13 +210,7 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
    pros::delay(1000);
    chassis.moveToPoint(-1.3, 15, 3000, {.maxSpeed = 64}, false);
    chassis.moveToPoint(-1.9, 27, 3000, {.maxSpeed = 64}, false);
-   // score
-   
-
-
-
-
-      
+   // score      
 
    
    
