@@ -8,22 +8,28 @@
 #include "pros/llemu.hpp" // brain screen
 #include "pros/imu.hpp" // inertial sensor
 #include "pros/motors.hpp" // motor groups
-#include "assets/assets.hpp" // asset manager
+#include "lemlib/asset.hpp" // asset manager
 
 // include assets
 
-ASSET(r.txt); /
+ASSET(r_txt);
 
 // controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
-// motor groups
-pros::MotorGroup leftMotors({-8, -9, -10}, pros::MotorGearset::blue); // left motor group - ports 8, 9, 10 (reversed)
-pros::MotorGroup rightMotors({4, 5, 6}, pros::MotorGearset::blue); // right motor group - ports 4, 5, 6 (not reversed)
+// FIXED: Consistent motor gear settings
+pros::MotorGroup leftMotors({-8, -9, -10}, pros::E_MOTOR_GEARSET_06);
+pros::MotorGroup rightMotors({4, 5, 6}, pros::E_MOTOR_GEARSET_06);
+pros::Motor intake11(11, pros::E_MOTOR_GEARSET_06);
+pros::Motor intake12(12, pros::E_MOTOR_GEARSET_06);
 
-// motors
-pros::Motor intake11 (11, pros::v5::MotorGears::green); // roller; not reversed
-pros::Motor intake12 (12, pros::v5::MotorGears::green); // roller; not reversed
+// // motor groups
+// pros::MotorGroup leftMotors({-8, -9, -10}, pros::v5::MotorGearset::blue); // left motor group - ports 8, 9, 10 (reversed)
+// pros::MotorGroup rightMotors({4, 5, 6}, pros::v5::MotorGearset::blue); // right motor group - ports 4, 5, 6 (not reversed)
+
+// // motors
+// pros::Motor intake11 (11, pros::v5::MotorGears::green); // roller; not reversed
+// pros::Motor intake12 (12, pros::v5::MotorGears::green); // roller; not reversed
 
 // sensors
 pros::Imu imu(15); // Inertial Sensor on port 15
@@ -31,8 +37,8 @@ pros::Imu imu(15); // Inertial Sensor on port 15
 // pros::Optical colorSensor(5);
 
 // Pneumatics
-pros::adi::Pneumatics scraper ('A', false); // clamp on port A; starts off retracted
-pros::adi::Pneumatics hood ('B', false); // doinker on port C; starts off retracted
+pros::adi::Pneumatics scraper ('A', false); // scraper on port A; starts off retracted
+pros::adi::Pneumatics wings ('B', false); // wings on port B; starts off retracted
 bool pistonToggle = false; // toggle for pneumatics
 
 // tracking wheels
@@ -157,82 +163,110 @@ void disabled() {}
  */
 void competition_initialize() {}
 
-// get a path used for pure pursuit
-// this needs to be put outside a function
-ASSET(example_txt); // '.' replaced with "_" to make c++ happy
-
 /**  
  * Runs during auto
  *
  * This is an example autonomous routine which demonstrates a lot of the features LemLib has to offer
  */
  void autonomous() {
-    // set position to x:0, y:0, heading:0
-    chassis.setPose(0, 0, 0);
-   
-    chassis.follow(r.txt, 10, 4000, 0, {.async = true});
+
+    // Set initial position based on your path file - starting at (-53.759, -8.49)
+    chassis.setPose(-53.759, -8.49, 20);
+
+    // Follow the path from r.txt with proper parameters
+    chassis.follow(r_txt, 15, 4000, false);
+
+    // Run intake during the path
     intake11.move_velocity(600);
     intake12.move_velocity(600);
+
+    // Wait for path completion
     chassis.waitUntilDone();
+
+    // Stop intake
     intake11.move_velocity(0);
     intake12.move_velocity(0);
+
+    // Optional: Add additional movements based on your path endpoints
+    // The path ends around (-24.156, -47.205), so you could add:
+
+    // Move to score position
+    chassis.moveToPoint(-24.156, -47.205, 1500, {.maxSpeed = 64});
+
+    // Extend scraper to score
+    scraper.extend();
+    pros::delay(500);
+
+    // Retract and move away
+    scraper.retract();
+    pros::delay(300);
+    chassis.moveToPoint(-30, -40, 1500, {.maxSpeed = 64, .forwards = false});
+//     // set position to x:0, y:0, heading:0
+//     chassis.setPose(0, 0, 0);
    
-   /*
-   chassis.moveToPose(-1.5, 34, 177, 3000, {.forwards = false, .maxSpeed = 85});
-   chassis.waitUntilDone();
-   pros::delay(500);
-   scraper.extend();
-   pros::delay(500);
-   chassis.moveToPose(-1.5, 25, 177, 3000, {.maxSpeed = 127});  
-   chassis.waitUntilDone();
-   pros::delay(500);
-   belt.move_velocity(600);
-   pros::delay(2000);
-   belt.move_velocity(0);
-   pros::delay(500);
-   //chassis.moveToPose(-1.5, 30, 177, 3000, {.forwards = false});
-   */
+//     chassis.follow(r.txt, 10, 4000, 0, {.async = true});
+//     intake11.move_velocity(600);
+//     intake12.move_velocity(600);
+//     chassis.waitUntilDone();
+//     intake11.move_velocity(0);
+//     intake12.move_velocity(0);
+   
+//    /*
+//    chassis.moveToPose(-1.5, 34, 177, 3000, {.forwards = false, .maxSpeed = 85});
+//    chassis.waitUntilDone();
+//    pros::delay(500);
+//    scraper.extend();
+//    pros::delay(500);
+//    chassis.moveToPose(-1.5, 25, 177, 3000, {.maxSpeed = 127});  
+//    chassis.waitUntilDone();
+//    pros::delay(500);
+//    belt.move_velocity(600);
+//    pros::delay(2000);
+//    belt.move_velocity(0);
+//    pros::delay(500);
+//    //chassis.moveToPose(-1.5, 30, 177, 3000, {.forwards = false});
+//    */
 
-   /*
-   chassis.moveToPose(0, -27, 0, 3000, {.forwards = false, .maxSpeed = 60});
-   chassis.waitUntilDone();
-   pros::delay(300);
-   scraper.extend();
-   pros::delay(300);
-   belt.move_velocity(600);
-   pros::delay(1000);
-   belt.move_velocity(0);
-   pros::delay(300);
-   chassis.turnToHeading(88, 2000);
-   chassis.waitUntilDone();
-   pros::delay(300);
-   intake.move_velocity(200);
-   belt.move_velocity(600);
-   pros::delay(300);
-   chassis.moveToPoint(18, -24, 2000);
-   chassis.waitUntilDone();
-   pros::delay(300);
-   */
+//    /*
+//    chassis.moveToPose(0, -27, 0, 3000, {.forwards = false, .maxSpeed = 60});
+//    chassis.waitUntilDone();
+//    pros::delay(300);
+//    scraper.extend();
+//    pros::delay(300);
+//    belt.move_velocity(600);
+//    pros::delay(1000);
+//    belt.move_velocity(0);
+//    pros::delay(300);
+//    chassis.turnToHeading(88, 2000);
+//    chassis.waitUntilDone();
+//    pros::delay(300);
+//    intake.move_velocity(200);
+//    belt.move_velocity(600);
+//    pros::delay(300);
+//    chassis.moveToPoint(18, -24, 2000);
+//    chassis.waitUntilDone();
+//    pros::delay(300);
+//    */
 
-   /*
-   intake.move_velocity(200);
-   belt.move_velocity(600);
-   pros::delay(1000);
-   intake.move_velocity(0);
-   belt.move_velocity(0);
-   */
+//    /*
+//    intake.move_velocity(200);
+//    belt.move_velocity(600);
+//    pros::delay(1000);
+//    intake.move_velocity(0);
+//    belt.move_velocity(0);
+//    */
 
-   // chassis.moveToPoint(0, 48, 10000, {.maxSpeed = 64}, false);
-   // chassis.turnToHeading(90, 10000);
-   // chassis.moveToPoint(0, 48, 10000);
+//    // chassis.moveToPoint(0, 48, 10000, {.maxSpeed = 64}, false);
+//    // chassis.turnToHeading(90, 10000);
+//    // chassis.moveToPoint(0, 48, 10000);
 
-   chassis.moveToPoint(-1.3, 0, 750, {.maxSpeed = 64}, false);
-   // run intake
-   chassis.moveToPoint(-1.3, 33, 2000, {.maxSpeed = 64}, false);
-   pros::delay(1000);
-   chassis.moveToPoint(-1.3, 15, 3000, {.maxSpeed = 64}, false);
-   chassis.moveToPoint(-1.9, 27, 3000, {.maxSpeed = 64}, false);
-   // score      
+//    chassis.moveToPoint(-1.3, 0, 750, {.maxSpeed = 64}, false);
+//    // run intake
+//    chassis.moveToPoint(-1.3, 33, 2000, {.maxSpeed = 64}, false);
+//    pros::delay(1000);
+//    chassis.moveToPoint(-1.3, 15, 3000, {.maxSpeed = 64}, false);
+//    chassis.moveToPoint(-1.9, 27, 3000, {.maxSpeed = 64}, false);
+//    // score      
 
    
    
@@ -242,7 +276,6 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
  * Runs in driver control
  */
  void opcontrol() {
-    // controller
     // loop to continuously update motors
     while (true) {
         // get joystick positions
@@ -253,97 +286,57 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
         // delay to save resources
         pros::delay(10);
 
-        /*
-        // color sort
-        int hue = colorSensor.get_hue();
-        if (hue >= 200 && hue <= 250) { 
-            belt.move_velocity(600);
-            belt.move_velocity(0);
-        } 
-        */
-
-        /*
-        // clamp
-        if (controller.get_digital(DIGITAL_B)){
-            if(pistonToggle == false){
-                scraper.extend();
-                pros::delay(500);
-                pistonToggle = true;
-
-            }
-            else{
-                scraper.retract();
-                pros::delay(500);
-                pistonToggle = false;
-            }
-        }
-        */
-
-        // Roller Functions
+        // Roller Functions - FIXED: Using correct motor names
 
         // Check if Button X is pressed
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
             // longgoal
-            // hood position = score
-            motor11.move_velocity(200);
-            motor12.move_velocity(200);
-            motor13.move_velocity(200);
-            motor14.move_velocity(200);
+            // wings position = score
+            intake11.move_velocity(200);
+            intake12.move_velocity(200);
         } 
         // If X wasn't pressed, check if Y is pressed
         else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
             // hoarder
-            // hood position = hoard
-            motor11.move_velocity(200);
-            motor12.move_velocity(200);
-            motor13.move_velocity(200);
-            motor14.move_velocity(200);
+            // wings position = hoard
+            intake11.move_velocity(200);
+            intake12.move_velocity(200);
         }
         // If neither X nor Y were pressed, check if A is pressed
         else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
             // center top
-            motor11.move_velocity(-200);
-            motor12.move_velocity(200);
-            motor13.move_velocity(200);
-            motor14.move_velocity(200);
+            intake11.move_velocity(-200);
+            intake12.move_velocity(200);
         }
         // If none of the above were pressed, check if B is pressed
         else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
             // center bottom
-            motor11.move_velocity(0); // Explicitly stop motor11
-            motor12.move_velocity(200);
-            motor13.move_velocity(-200);
-            motor14.move_velocity(-200);
+            intake11.move_velocity(0); // Explicitly stop motor11
+            intake12.move_velocity(200);
         }
         // If none of the buttons are being pressed
         else {
             // Stop all motors
-            motor11.move_velocity(0);
-            motor12.move_velocity(0);
-            motor13.move_velocity(0);
-            motor14.move_velocity(0);
+            intake11.move_velocity(0);
+            intake12.move_velocity(0);
         }
 
-        // Hood extensions
+        // wings extensions
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-            // R1 extends Hood
-            hood.extend();
-        } else {
-            if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-                // R2 retracts Hood
-                hood.retract();
-            }
+            // R1 extends wings
+            wings.extend();
+        } else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+            // R2 retracts wings
+            wings.retract();
         }
 
         // Scraper extensions
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
             // L1 extends Scraper
             scraper.extend();
-        } else {
-            if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) { 
-                // L2 retracts Scraper
-                scraper.retract();
-            }
+        } else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) { 
+            // L2 retracts Scraper
+            scraper.retract();
         }
 
 
