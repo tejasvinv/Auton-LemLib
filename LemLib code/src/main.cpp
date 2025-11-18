@@ -8,22 +8,25 @@
 #include "pros/llemu.hpp" // brain screen
 #include "pros/imu.hpp" // inertial sensor
 #include "pros/motors.hpp" // motor groups
+#include "assets/assets.hpp" // asset manager
+
+// include assets
+
+ASSET(r.txt); /
 
 // controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 // motor groups
-pros::MotorGroup leftMotors({8, -9, 10}, pros::MotorGearset::blue); // left motor group - ports 1, 2, 3 (not reversed)
-pros::MotorGroup rightMotors({-4, 5, -6}, pros::MotorGearset::blue); // right motor group - ports 4, 5, 6 ( not reversed)
+pros::MotorGroup leftMotors({-8, -9, -10}, pros::MotorGearset::blue); // left motor group - ports 8, 9, 10 (reversed)
+pros::MotorGroup rightMotors({4, 5, 6}, pros::MotorGearset::blue); // right motor group - ports 4, 5, 6 (not reversed)
 
 // motors
-pros::Motor motor11 (11, pros::v5::MotorGears::blue); // roller; not reversed
-pros::Motor motor13 (-13, pros::v5::MotorGears::green); // roller; reversed
-pros::Motor motor12 (12, pros::v5::MotorGears::green); // roller; not reversed
-pros::Motor motor14 (-14, pros::v5::MotorGears::green); // roller; reversed
+pros::Motor intake11 (11, pros::v5::MotorGears::green); // roller; not reversed
+pros::Motor intake12 (12, pros::v5::MotorGears::green); // roller; not reversed
 
 // sensors
-pros::Imu imu(15); // Inertial Sensor on port 10
+pros::Imu imu(15); // Inertial Sensor on port 15
 // pros::Rotation lb (12); // Rotation sensor on port 15
 // pros::Optical colorSensor(5);
 
@@ -33,6 +36,19 @@ pros::adi::Pneumatics hood ('B', false); // doinker on port C; starts off retrac
 bool pistonToggle = false; // toggle for pneumatics
 
 // tracking wheels
+
+// create a v5 rotation sensor on port 1
+pros::Rotation rotation_sensor(1);
+
+// horizontal tracking wheel encoder
+pros::Rotation horizontal_encoder(20);
+// vertical tracking wheel encoder
+pros::adi::Encoder vertical_encoder('C', 'D', true);
+// horizontal tracking wheel
+lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omniwheel::NEW_275, -5.75);
+// vertical tracking wheel
+lemlib::TrackingWheel vertical_tracking_wheel(&vertical_encoder, lemlib::Omniwheel::NEW_275, -2.5);
+
 // horizontal tracking wheel encoder. Rotation sensor, port 20, not reversed
 // pros::Rotation horizontalEnc(20);
 // vertical tracking wheel encoder. Rotation sensor, port 11, reversed
@@ -152,8 +168,14 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
  */
  void autonomous() {
     // set position to x:0, y:0, heading:0
-   chassis.setPose(0, 0, 0);
-   // move 48" forwards
+    chassis.setPose(0, 0, 0);
+   
+    chassis.follow(r.txt, 10, 4000, 0, {.async = true});
+    intake11.move_velocity(600);
+    intake12.move_velocity(600);
+    chassis.waitUntilDone();
+    intake11.move_velocity(0);
+    intake12.move_velocity(0);
    
    /*
    chassis.moveToPose(-1.5, 34, 177, 3000, {.forwards = false, .maxSpeed = 85});
