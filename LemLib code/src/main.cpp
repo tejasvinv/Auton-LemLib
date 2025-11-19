@@ -32,7 +32,6 @@ pros::Motor intake12(12, pros::E_MOTOR_GEARSET_06);
 // pros::Motor intake12 (12, pros::v5::MotorGears::green); // roller; not reversed
 
 // sensors
-pros::Imu imu(15); // Inertial Sensor on port 15
 // pros::Rotation lb (12); // Rotation sensor on port 15
 // pros::Optical colorSensor(5);
 
@@ -97,11 +96,11 @@ lemlib::ControllerSettings angularController(2, // proportional gain (kP)
 );
 
 // sensors for odometry
-lemlib::OdomSensors sensors(nullptr, // vertical tracking wheel
+lemlib::OdomSensors sensors(&vertical_tracking_wheel, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2, set to nullptr as we don't have a second one
-                            nullptr, // horizontal tracking wheel
+                            &horizontal_tracking_wheel, // horizontal tracking wheel
                             nullptr, // horizontal tracking wheel 2, set to nullptr as we don't have a second one
-                            &imu // inertial sensor
+                            nullptr // no inertial sensor
 );
 
 // input curve for throttle input during driver control
