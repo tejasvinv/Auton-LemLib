@@ -18,7 +18,7 @@ ASSET(r_txt);
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 // FIXED: Consistent motor gear settings
-pros::MotorGroup leftMotors({-8, -9, -10}, pros::E_MOTOR_GEARSET_06);
+pros::MotorGroup leftMotors({-11, -9, -10}, pros::E_MOTOR_GEARSET_06);
 pros::MotorGroup rightMotors({4, 5, 6}, pros::E_MOTOR_GEARSET_06);
 pros::Motor intake11(11, pros::E_MOTOR_GEARSET_06);
 pros::Motor intake12(12, pros::E_MOTOR_GEARSET_06);
