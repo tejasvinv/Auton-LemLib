@@ -8,328 +8,174 @@
 #include "pros/llemu.hpp" // brain screen
 #include "pros/imu.hpp" // inertial sensor
 #include "pros/motors.hpp" // motor groups
+#include "lemlib/asset.hpp" // asset manager
+
+// include assets
+ASSET(r_txt);
 
 // controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
-// motor groups
-pros::MotorGroup leftMotors({8, -9, 10}, pros::MotorGearset::blue); // left motor group - ports 1, 2, 3 (not reversed)
-pros::MotorGroup rightMotors({-4, 5, -6}, pros::MotorGearset::blue); // right motor group - ports 4, 5, 6 ( not reversed)
+// DRIVETRAIN - 6 motors (Blue/600 RPM)
+// Left side: ports 11, 12, 13 (reversed)
+// Right side: ports 18, 19, 20 (normal)
+pros::MotorGroup leftMotors({-11, -12, -13}, pros::E_MOTOR_GEARSET_06);
+pros::MotorGroup rightMotors({18, 19, 20}, pros::E_MOTOR_GEARSET_06);
 
-// motors
-pros::Motor motor11 (11, pros::v5::MotorGears::green); // roller; not reversed
-pros::Motor motor13 (-13, pros::v5::MotorGears::green); // roller; reversed
-pros::Motor motor12 (12, pros::v5::MotorGears::green); // roller; not reversed
-pros::Motor motor14 (-14, pros::v5::MotorGears::green); // roller; reversed
-
-// sensors
-pros::Imu imu(15); // Inertial Sensor on port 10
-// pros::Rotation lb (12); // Rotation sensor on port 15
-// pros::Optical colorSensor(5);
+// INTAKE MOTORS - 3 motors on same axle
+pros::Motor front_intake(10, pros::E_MOTOR_GEARSET_06);        // Blue motor, port 10, normal
+pros::Motor mid_intake(-1, pros::E_MOTOR_GEARSET_18);          // Green motor, port 1, reversed
+pros::Motor top_intake(-9, pros::E_MOTOR_GEARSET_18);          // Green motor, port 9, reversed
 
 // Pneumatics
-pros::adi::Pneumatics scraper ('A', false); // clamp on port A; starts off retracted
-pros::adi::Pneumatics hood ('B', false); // doinker on port C; starts off retracted
-bool pistonToggle = false; // toggle for pneumatics
+pros::adi::Pneumatics scraper('A', false);
+pros::adi::Pneumatics wings('B', false);
 
-// tracking wheels
-// horizontal tracking wheel encoder. Rotation sensor, port 20, not reversed
-// pros::Rotation horizontalEnc(20);
-// vertical tracking wheel encoder. Rotation sensor, port 11, reversed
-// pros::Rotation verticalEnc(-11);
-// horizontal tracking wheel. 2" diameter, 5.75" offset, back of the robot (negative)
-// lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_2, -5.75);
-// vertical tracking wheel. 2" diameter, 2.5" offset, left of the robot (negative)
-// lemlib::TrackingWheel vertical(&verticalEnc, lemlib::Omniwheel::NEW_2, -2.5);
+// Tracking wheels
+pros::Rotation horizontal_encoder(17); 
+lemlib::TrackingWheel horizontal_tracking_wheel(&horizontal_encoder, lemlib::Omniwheel::NEW_275, -5.75);
 
-// drivetrain settings
-lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
-                              &rightMotors, // right motor group
-                              12, // 12 inch track width
-                              3.25,// using new 3.25" omnis
-                              450, // drivetrain rpm is 450
-                              8 // horizontal drift is 2. If we had traction wheels, it would have been 8
+// Drivetrain settings
+lemlib::Drivetrain drivetrain(&leftMotors, 
+                              &rightMotors, 
+                              12,      // 12 inch track width
+                              3.25,    // 3.25" omnis
+                              600,     // drivetrain rpm is 600 (blue motors)
+                              8        // horizontal drift
 );
 
-// lateral motion controller
-lemlib::ControllerSettings linearController(8, // proportional gain (kP)
-                                            0, // integral gain (kI)
-                                            15, // derivative gain (kD)
-                                            3, // anti windup
-                                            1, // small error range, in inches
-                                            100, // small error range timeout, in milliseconds
-                                            3, // large error range, in inches
-                                            500, // large error range timeout, in milliseconds
-                                            20 // maximum acceleration (slew)
+// Lateral motion controller
+lemlib::ControllerSettings linearController(8, 0, 15, 3, 1, 100, 3, 500, 20);
+
+// Angular controller
+lemlib::ControllerSettings angularController(2, 0, 10, 3, 1, 100, 3, 500, 0);
+
+// Sensors for odometry
+lemlib::OdomSensors sensors(nullptr,                        // no vertical tracking wheel 1
+                            nullptr,                        // no vertical tracking wheel 2
+                            &horizontal_tracking_wheel,     // horizontal tracking wheel
+                            nullptr,                        // no horizontal tracking wheel 2
+                            nullptr                         // no inertial sensor
 );
 
-lemlib::ControllerSettings angularController(2, // proportional gain (kP)
-                                              0, // integral gain (kI)
-                                              10, // derivative gain (kD)
-                                              3, // anti windup
-                                              1, // small error range, in inches
-                                              100, // small error range timeout, in milliseconds
-                                              3, // large error range, in inches
-                                              500, // large error range timeout, in milliseconds
-                                              0 // maximum acceleration (slew)
-);
+// Input curves
+lemlib::ExpoDriveCurve throttleCurve(3, 10, 1.019);
+lemlib::ExpoDriveCurve steerCurve(3, 10, 1.019);
 
-// sensors for odometry
-lemlib::OdomSensors sensors(nullptr, // vertical tracking wheel
-                            nullptr, // vertical tracking wheel 2, set to nullptr as we don't have a second one
-                            nullptr, // horizontal tracking wheel
-                            nullptr, // horizontal tracking wheel 2, set to nullptr as we don't have a second one
-                            &imu // inertial sensor
-);
-
-// input curve for throttle input during driver control
-lemlib::ExpoDriveCurve throttleCurve(3, // joystick deadband out of 127
-                                     10, // minimum output where drivetrain will move out of 127
-                                     1.019 // expo curve gain
-);
-
-// input curve for steer input during driver control
-lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
-                                  10, // minimum output where drivetrain will move out of 127
-                                  1.019 // expo curve gain
-);
-
-// create the chassis
+// Create the chassis
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
 /**
- * Runs initialization code. This occurs as soon as the program is started.
- *
- * All other competition modes are blocked by initialize; it is recommended
- * to keep execution time for this mode under a few seconds.
+ * Runs initialization code
  */
 void initialize() {
-    pros::lcd::initialize(); // initialize brain screen
-    chassis.calibrate(); // calibrate sensors
+    pros::lcd::initialize();
+    pros::lcd::print(0, "Initializing...");
+    
+    chassis.calibrate();
+    pros::lcd::print(1, "Calibration done");
+    pros::delay(500);
 
-    // the default rate is 50. however, if you need to change the rate, you
-    // can do the following.
-    // lemlib::bufferedStdout().setRate(...);
-    // If you use bluetooth or a wired connection, you will want to have a rate of 10ms
-
-    // for more information on how the formatting for the loggers
-    // works, refer to the fmtlib docs
-
-    // thread to for brain screen and position logging
+    // Brain screen task
     pros::Task screenTask([&]() {
         while (true) {
-            // print robot location to the brain screen
-            pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
-            pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
-            pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
-            // log position telemetry
+            pros::lcd::clear();
+            pros::lcd::print(0, "X: %.2f", chassis.getPose().x);
+            pros::lcd::print(1, "Y: %.2f", chassis.getPose().y);
+            pros::lcd::print(2, "Theta: %.2f", chassis.getPose().theta);
             lemlib::telemetrySink()->info("Chassis pose: {}", chassis.getPose());
-            // delay to save resources
             pros::delay(50);
         }
     });
-
 }
 
-/**
- * Runs while the robot is disabled
- */
 void disabled() {}
 
-/**
- * runs after initialize if the robot is connected to field control
- */
 void competition_initialize() {}
 
-// get a path used for pure pursuit
-// this needs to be put outside a function
-ASSET(example_txt); // '.' replaced with "_" to make c++ happy
-
 /**  
- * Runs during auto
- *
- * This is an example autonomous routine which demonstrates a lot of the features LemLib has to offer
+ * Autonomous routine
  */
- void autonomous() {
-    // set position to x:0, y:0, heading:0
-   chassis.setPose(0, 0, 0);
-   // move 48" forwards
-   
-   /*
-   chassis.moveToPose(-1.5, 34, 177, 3000, {.forwards = false, .maxSpeed = 85});
-   chassis.waitUntilDone();
-   pros::delay(500);
-   scraper.extend();
-   pros::delay(500);
-   chassis.moveToPose(-1.5, 25, 177, 3000, {.maxSpeed = 127});  
-   chassis.waitUntilDone();
-   pros::delay(500);
-   belt.move_velocity(600);
-   pros::delay(2000);
-   belt.move_velocity(0);
-   pros::delay(500);
-   //chassis.moveToPose(-1.5, 30, 177, 3000, {.forwards = false});
-   */
+void autonomous() {
+    chassis.setPose(-53.759, -8.49, 20);
+    chassis.follow(r_txt, 15, 4000, false);
 
-   /*
-   chassis.moveToPose(0, -27, 0, 3000, {.forwards = false, .maxSpeed = 60});
-   chassis.waitUntilDone();
-   pros::delay(300);
-   scraper.extend();
-   pros::delay(300);
-   belt.move_velocity(600);
-   pros::delay(1000);
-   belt.move_velocity(0);
-   pros::delay(300);
-   chassis.turnToHeading(88, 2000);
-   chassis.waitUntilDone();
-   pros::delay(300);
-   intake.move_velocity(200);
-   belt.move_velocity(600);
-   pros::delay(300);
-   chassis.moveToPoint(18, -24, 2000);
-   chassis.waitUntilDone();
-   pros::delay(300);
-   */
+    // Run intake during path
+    front_intake.move_velocity(600);
+    mid_intake.move_velocity(600);
+    top_intake.move_velocity(600);
 
-   /*
-   intake.move_velocity(200);
-   belt.move_velocity(600);
-   pros::delay(1000);
-   intake.move_velocity(0);
-   belt.move_velocity(0);
-   */
+    chassis.waitUntilDone();
 
-   // chassis.moveToPoint(0, 48, 10000, {.maxSpeed = 64}, false);
-   // chassis.turnToHeading(90, 10000);
-   // chassis.moveToPoint(0, 48, 10000);
+    // Stop intake
+    front_intake.move_velocity(0);
+    mid_intake.move_velocity(0);
+    top_intake.move_velocity(0);
 
-   chassis.moveToPoint(-1.3, 0, 750, {.maxSpeed = 64}, false);
-   // run intake
-   chassis.moveToPoint(-1.3, 33, 2000, {.maxSpeed = 64}, false);
-   pros::delay(1000);
-   chassis.moveToPoint(-1.3, 15, 3000, {.maxSpeed = 64}, false);
-   chassis.moveToPoint(-1.9, 27, 3000, {.maxSpeed = 64}, false);
-   // score
-   
-
-
-
-
-      
-
-   
-   
+    // Move to score position
+    chassis.moveToPoint(-24.156, -47.205, 1500, {.maxSpeed = 64});
+    scraper.extend();
+    pros::delay(500);
+    scraper.retract();
+    pros::delay(300);
+    chassis.moveToPoint(-30, -40, 1500, {.maxSpeed = 64, .forwards = false});
 }
 
 /**
- * Runs in driver control
+ * Driver control
  */
- void opcontrol() {
-    // controller
-    // loop to continuously update motors
+void opcontrol() {
+    // Set brake modes
+    leftMotors.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    rightMotors.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    front_intake.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    mid_intake.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    top_intake.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+    
     while (true) {
-        // get joystick positions
+        // Get joystick positions
+        // Left stick Y-axis: forward/backward
+        // Right stick X-axis: left/right turning
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-        // move the chassis with curvature drive
+        
+        // Drive with arcade control
         chassis.arcade(leftY, rightX);
-        // delay to save resources
-        pros::delay(10);
 
-        /*
-        // color sort
-        int hue = colorSensor.get_hue();
-        if (hue >= 200 && hue <= 250) { 
-            belt.move_velocity(600);
-            belt.move_velocity(0);
-        } 
-        */
-
-        /*
-        // clamp
-        if (controller.get_digital(DIGITAL_B)){
-            if(pistonToggle == false){
-                scraper.extend();
-                pros::delay(500);
-                pistonToggle = true;
-
-            }
-            else{
-                scraper.retract();
-                pros::delay(500);
-                pistonToggle = false;
-            }
-        }
-        */
-
-        // Roller Functions
-
-        // Check if Button X is pressed
-        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
-            // longgoal
-            // hood position = score
-            motor11.move_velocity(200);
-            motor12.move_velocity(200);
-            motor13.move_velocity(200);
-            motor14.move_velocity(200);
-        } 
-        // If X wasn't pressed, check if Y is pressed
-        else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
-            // hoarder
-            // hood position = hoard
-            motor11.move_velocity(200);
-            motor12.move_velocity(200);
-            motor13.move_velocity(200);
-            motor14.move_velocity(200);
-        }
-        // If neither X nor Y were pressed, check if A is pressed
-        else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)) {
-            // center top
-            motor11.move_velocity(-200);
-            motor12.move_velocity(200);
-            motor13.move_velocity(200);
-            motor14.move_velocity(200);
-        }
-        // If none of the above were pressed, check if B is pressed
-        else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_B)) {
-            // center bottom
-            motor11.move_velocity(0); // Explicitly stop motor11
-            motor12.move_velocity(200);
-            motor13.move_velocity(-200);
-            motor14.move_velocity(-200);
-        }
-        // If none of the buttons are being pressed
-        else {
-            // Stop all motors
-            motor11.move_velocity(0);
-            motor12.move_velocity(0);
-            motor13.move_velocity(0);
-            motor14.move_velocity(0);
-        }
-
-        // Hood extensions
+        // INTAKE CONTROLS
+        // R1: Spin all intakes forward
+        // R2: Spin all intakes backward
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) {
-            // R1 extends Hood
-            hood.extend();
-        } else {
-            if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
-                // R2 retracts Hood
-                hood.retract();
-            }
+            front_intake.move_velocity(600);   // Blue motor max speed
+            mid_intake.move_velocity(200);     // Green motor max speed
+            top_intake.move_velocity(200);     // Green motor max speed
+        } 
+        else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+            front_intake.move_velocity(-600);  // Reverse
+            mid_intake.move_velocity(-200);    // Reverse
+            top_intake.move_velocity(-200);    // Reverse
+        }
+        else {
+            // Stop all intakes when no button pressed
+            front_intake.move_velocity(0);
+            mid_intake.move_velocity(0);
+            top_intake.move_velocity(0);
         }
 
-        // Scraper extensions
+        // Pneumatics controls (keeping your original setup)
         if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
-            // L1 extends Scraper
             scraper.extend();
-        } else {
-            if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) { 
-                // L2 retracts Scraper
-                scraper.retract();
-            }
+        } else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) { 
+            scraper.retract();
         }
 
-
+        if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+            wings.extend();
+        } else if (controller.get_digital(pros::E_CONTROLLER_DIGITAL_Y)) {
+            wings.retract();
+        }
+        
+        // Delay to save resources
+        pros::delay(20);
     }
 }
