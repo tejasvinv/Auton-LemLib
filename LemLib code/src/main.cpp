@@ -19,13 +19,13 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // DRIVETRAIN - 6 motors (Blue/600 RPM)
 // Left side: ports 11, 12, 13 (reversed)
 // Right side: ports 18, 19, 20 (normal)
-pros::MotorGroup leftMotors({-11, -12, -13}, pros::E_MOTOR_GEARSET_06);
-pros::MotorGroup rightMotors({18, 19, 20}, pros::E_MOTOR_GEARSET_06);
+pros::MotorGroup leftMotors({-11, -12, -13}, pros::v5::MotorGears::blue);
+pros::MotorGroup rightMotors({18, 19, 20}, pros::v5::MotorGears::blue);
 
 // INTAKE MOTORS - 3 motors on same axle
-pros::Motor front_intake(10, pros::E_MOTOR_GEARSET_06);        // Blue motor, port 10, normal
-pros::Motor mid_intake(-1, pros::E_MOTOR_GEARSET_18);          // Green motor, port 1, reversed
-pros::Motor top_intake(-9, pros::E_MOTOR_GEARSET_18);          // Green motor, port 9, reversed
+pros::Motor front_intake(10, pros::v5::MotorGears::blue);        // Blue motor, port 10, normal
+pros::Motor mid_intake(1, pros::v5::MotorGears::green);          // Green motor, port 1
+pros::Motor top_intake(9, pros::v5::MotorGears::green);          // Green motor, port 9
 
 // Pneumatics
 pros::adi::Pneumatics scraper('A', false);
