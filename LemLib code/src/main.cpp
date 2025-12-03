@@ -113,12 +113,14 @@ void autonomous() {
     top_intake.move_velocity(0);
 
     // Move to score position
-    chassis.moveToPoint(-24.156, -47.205, 1500, {.maxSpeed = 64});
+    chassis.moveToPoint(-30, -40, 1500, {.forwards = false, .maxSpeed = 64});
+
     scraper.extend();
     pros::delay(500);
     scraper.retract();
     pros::delay(300);
-    chassis.moveToPoint(-30, -40, 1500, {.maxSpeed = 64, .forwards = false});
+    chassis.moveToPoint(-30, -40, 1500, {.forwards = false, .maxSpeed = 64});
+
 }
 
 /**
