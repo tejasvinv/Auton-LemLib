@@ -200,7 +200,29 @@ void opcontrol() {
 			mid_intake.move_velocity(-600);
 			top_intake.move_velocity(-600);
 		} else if (R) {
+<<<<<<< Updated upstream
             
+=======
+            if (pistonToggleW == false) {
+                wings.extend();
+                pros::delay(500);
+                pistonToggleW = true;
+            } else {
+                wings.retract();
+                pros::delay(500);
+                pistonToggleW = false;
+            }
+        } else if (D) {
+            if (pistonToggleS == false) {
+                scraper.extend();
+                pros::delay(500);
+                pistonToggleS = true;
+            } else {
+                scraper.retract();
+                pros::delay(500);
+                pistonToggleS = false;
+            }
+>>>>>>> Stashed changes
         }
 		
 		
