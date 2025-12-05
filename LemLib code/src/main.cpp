@@ -85,8 +85,8 @@ lemlib::ExpoDriveCurve steerCurve(3, // joystick deadband out of 127
 lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors, &throttleCurve, &steerCurve);
 
 //pnuematics
-pros::adi::Pneumatics scraper ('A', false); // clamp on port A; starts off retracted
-pros::adi::Pneumatics wings ('B', false); // doinker on port C; starts off retracted
+pros::adi::Pneumatics scraper ('A', false); // scraper on port A; starts off retracted
+pros::adi::Pneumatics wings ('B', false); // wings on port C; starts off retracted
 bool pistonToggleS = false; // toggle for scraper
 bool pistonToggleW = false; // toggle for wings
 
@@ -188,6 +188,8 @@ void opcontrol() {
 		int Y = controller.get_digital(pros::E_CONTROLLER_DIGITAL_Y);
 		int A = controller.get_digital(pros::E_CONTROLLER_DIGITAL_A);
 		int B = controller.get_digital(pros::E_CONTROLLER_DIGITAL_B);
+        int R = controller.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT);
+		int D = controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
 
 		if (R1) {
 			front_intake.move_velocity(600);
@@ -197,7 +199,9 @@ void opcontrol() {
 			front_intake.move_velocity(-600);
 			mid_intake.move_velocity(-600);
 			top_intake.move_velocity(-600);
-		}
+		} else if (R) {
+            
+        }
 		
 		
         // move the chassis with curvature drive
