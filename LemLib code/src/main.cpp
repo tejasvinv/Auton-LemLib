@@ -184,6 +184,8 @@ void opcontrol() {
 
 		int R1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);
 		int L1 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1);
+        int R2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
+		int L2 = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
 		int X = controller.get_digital(pros::E_CONTROLLER_DIGITAL_X);
 		int Y = controller.get_digital(pros::E_CONTROLLER_DIGITAL_Y);
 		int A = controller.get_digital(pros::E_CONTROLLER_DIGITAL_A);
@@ -191,18 +193,13 @@ void opcontrol() {
         int R = controller.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT);
 		int D = controller.get_digital(pros::E_CONTROLLER_DIGITAL_DOWN);
 
-		if (R1) {
+		if (R1) { //intake up
 			front_intake.move_velocity(600);
 			mid_intake.move_velocity(600);
 			top_intake.move_velocity(600);
-		} else if (L1) {
-			front_intake.move_velocity(-600);
-			mid_intake.move_velocity(-600);
-			top_intake.move_velocity(-600);
-		} else if (R) {
-<<<<<<< Updated upstream
-            
-=======
+		} else if (L1) { //empty
+			
+		} else if (R) { //wings toggle
             if (pistonToggleW == false) {
                 wings.extend();
                 pros::delay(500);
@@ -212,7 +209,7 @@ void opcontrol() {
                 pros::delay(500);
                 pistonToggleW = false;
             }
-        } else if (D) {
+        } else if (D) { // scraper toggle
             if (pistonToggleS == false) {
                 scraper.extend();
                 pros::delay(500);
@@ -222,7 +219,22 @@ void opcontrol() {
                 pros::delay(500);
                 pistonToggleS = false;
             }
->>>>>>> Stashed changes
+        } else if (A) { //empty
+			
+		} else if (X) { //empty
+			
+		} else if (Y) { //empty
+			
+		} else if (B) { //empty
+
+        } else if (R2) { //middle goal
+            front_intake.move_velocity(600);
+			mid_intake.move_velocity(600);
+			top_intake.move_velocity(-600);
+        } else if (L2) { //bottom goal
+            front_intake.move_velocity(-600);
+			mid_intake.move_velocity(-600);
+			top_intake.move_velocity(-600);
         }
 		
 		
