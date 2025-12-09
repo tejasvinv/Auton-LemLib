@@ -207,8 +207,8 @@ void opcontrol() {
 
         } else if (R2) { //middle goal
             front_intake.move_velocity(600);
-			mid_intake.move_velocity(600);
-			top_intake.move_velocity(-600);
+			mid_intake.move_velocity(-600);
+			top_intake.move_velocity(600);
         } else if (L2) { //bottom goal
             front_intake.move_velocity(-600);
 			mid_intake.move_velocity(-600);
