@@ -16,13 +16,13 @@ pros::Motor top_intake(-9, pros::MotorGearset::green);          // Green motor, 
 
 
 // Inertial Sensor on port 10
-pros::Imu imu(10);
+pros::Imu imu(14);
 
 // tracking wheels
 // horizontal tracking wheel encoder. Rotation sensor, port 20, not reversed
-pros::Rotation horizontalEnc(20);
+pros::Rotation horizontalEnc(15);
 // vertical tracking wheel encoder. Rotation sensor, port 11, reversed
-pros::Rotation verticalEnc(-11);
+pros::Rotation verticalEnc(16);
 // horizontal tracking wheel. 2.75" diameter, 5.75" offset, back of the robot (negative)
 lemlib::TrackingWheel horizontal(&horizontalEnc, lemlib::Omniwheel::NEW_275, -5.75);
 // vertical tracking wheel. 2.75" diameter, 2.5" offset, left of the robot (negative)
@@ -38,7 +38,7 @@ lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
 );
 
 // lateral motion controller
-lemlib::ControllerSettings linearController(10, // proportional gain (kP)
+lemlib::ControllerSettings linearController(5, // proportional gain (kP)
                                             0, // integral gain (kI)
                                             3, // derivative gain (kD)
                                             3, // anti windup
@@ -52,7 +52,7 @@ lemlib::ControllerSettings linearController(10, // proportional gain (kP)
 // angular motion controller
 lemlib::ControllerSettings angularController(2, // proportional gain (kP)
                                              0, // integral gain (kI)
-                                             10, // derivative gain (kD)
+                                             8, // derivative gain (kD)
                                              3, // anti windup
                                              1, // small error range, in degrees
                                              100, // small error range timeout, in milliseconds
@@ -135,7 +135,7 @@ void competition_initialize() {}
 
 // get a path used for pure pursuit
 // this needs to be put outside a function
-ASSET(r_txt); // '.' replaced with "_" to make c++ happy
+ASSET(autonpath_txt); // '.' replaced with "_" to make c++ happy
 
 /**
  * Runs during auto
@@ -146,7 +146,10 @@ void autonomous() {
     // Follow the path in path.txt. Lookahead at 15, Timeout set to 4000
     // following the path with the back of the robot (forwards = false)
     // see line 116 to see how to define a path
-    chassis.follow(r_txt, 15, 4000, false);
+    chassis.setPose(0, 0, 0);
+    chassis.follow(autonpath_txt, 15, 4000, false);
+    
+    
 }
 
 /**
